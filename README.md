@@ -1,92 +1,109 @@
-# Simple UART in Verilog
+# 📡 UART Controller – RTL Design (Verilog HDL)
 
-This repository contains a simple UART (Universal Asynchronous Receiver/Transmitter) implementation in Verilog, including a transmitter, receiver, baud rate generator, top-level integration, and a self-checking loopback testbench.
+## 📌 Project Overview
+This repository contains a **fully functional UART (Universal Asynchronous Receiver Transmitter)** implemented in **Verilog HDL**. The design includes a **baud rate generator, UART transmitter, UART receiver, top-level integration, and a self-checking testbench**.
 
-## Features
+The UART supports **8-bit asynchronous serial communication** using a standard frame format and is verified through **TX–RX loopback simulation**. The receiver uses **16× oversampling** to ensure accurate and reliable bit detection.
 
-- 8‑bit data frame: 1 start bit, 8 data bits, 1 stop bit (8N1).
-- Separate transmitter and receiver modules.
-- 16× oversampling in the receiver for robust bit detection.
-- Parameterizable baud rate generator (e.g., 115200 baud at 100 MHz clock).
-- Loopback top module (`uart_top`) that connects TX to RX for easy testing.
-- Simple testbench (`uart_tb`) that automatically sends and verifies multiple bytes. 
+---
 
-## Project Structure
+## 🎯 Design Objectives
+- Implement UART communication at **RTL level** using Verilog HDL  
+- Design a **baud rate generator** for transmitter and receiver  
+- Implement **FSM-based UART TX and RX**  
+- Use **16× oversampling** in the receiver for robust sampling  
+- Verify functionality using a **directed testbench**  
 
-- `uart_transmitter.v`  
-  UART transmitter: sends 8‑bit data frames as `START + 8 DATA + STOP` on `tx_line`.
+---
 
-- `uart_receiver.v`  
-  UART receiver: samples the incoming `rx_line` using 16× oversampling, reconstructs the 8‑bit word, and asserts `rx_ready` when a byte is available.
-  
-- `baud_rate_generator.v`  
-  Baud rate generator: generates enable pulses `tx_clk_en` and `rx_clk_en` from the system clock for transmitter and receiver timing. 
+## 📡 UART Configuration (As Implemented)
+- **Communication Type:** Asynchronous Serial  
+- **Data Bits:** 8  
+- **Start Bit:** 1 (logic `0`)  
+- **Stop Bit:** 1 (logic `1`)  
+- **Parity:** Not implemented  
+- **Bit Order:** LSB first  
+- **Receiver Sampling:** 16× oversampling  
+- **System Clock:** 100 MHz  
+- **Baud Rate:** Parameterized  
+  - `9600` (default in baud generator)  
+  - `115200` used in `uart_top` for faster simulation  
 
-- `uart_top.v`  
-  Top-level UART integration: instantiates the baud rate generator, transmitter, and receiver, and connects `tx_line` to the receiver’s `rx_line` for loopback testing.
+---
 
-- `uart_tb.v`  
-  Testbench for simulation: creates a 100 MHz clock, applies reset, sends a sequence of bytes, and prints received values to the console. 
+## 🏗️ Architecture Overview
+The UART design is composed of the following RTL blocks:
 
-## Module Overview
+---
 
-### `uart_transmitter`
+### 🔹 Baud Rate Generator (`baud_rate_generator.v`)
+- Generates **clock enable pulses** for TX and RX  
+- **TX clock enable (`tx_clk_en`)**:  
+  - One pulse per baud period  
+- **RX clock enable (`rx_clk_en`)**:  
+  - 16 pulses per baud period (16× oversampling)  
+- Uses counters derived from:
+  - `CLK_FREQ / BAUD_RATE`
+  - `CLK_FREQ / (BAUD_RATE × 16)`
 
-- Inputs: `clk`, `rst`, `tx_start`, `tx_clk_en`, `tx_data[7:0]`
-- Outputs: `tx_line`, `tx_busy`
-- State machine with states: `IDLE`, `START`, `DATA`, `STOP`.
-- `tx_busy` is high whenever the transmitter is not in the `IDLE` state. 
+**Parameters:**
+- `CLK_FREQ = 100_000_000` (100 MHz)
+- `BAUD_RATE` configurable
 
-### `uart_receiver`
+---
 
-- Inputs: `clk`, `rst`, `rx_line`, `rx_clk_en`, `rx_ready_clr`
-- Outputs: `rx_ready`, `rx_data[7:0]`
-- State machine with states: `IDLE`, `START`, `DATA`, `STOP`.
-- Uses a 4‑bit `sample_count` to count 16 oversampled ticks per bit period.
-- Samples in the middle of the bit period (`sample_count == 8`) and shifts bits into `rx_shift_reg`. 
+### 🔹 UART Transmitter (`uart_transmitter.v`)
+- FSM-based design with four states:
+  - `IDLE`  – TX line held high, waiting for `tx_start`
+  - `START` – Transmits start bit (`0`)
+  - `DATA`  – Transmits 8 data bits (LSB first)
+  - `STOP`  – Transmits stop bit (`1`)
+- Uses `tx_clk_en` for precise bit timing
+- Loads transmit data into a shift register at start
+- Provides `tx_busy` flag when transmission is active
 
-### `uart_top`
+---
 
-- Connects:
-  - `tx_line` from `uart_transmitter` to `rx_line` of `uart_receiver` (loopback).
-  - `tx_clk_en` and `rx_clk_en` from the baud rate generator.
-- Provides a simple UART interface:
-  - Inputs: `clk`, `rst`, `tx_start`, `tx_data[7:0]`, `rx_ready_clr`
-  - Outputs: `tx_busy`, `rx_ready`, `rx_data[7:0]`
+### 🔹 UART Receiver (`uart_receiver.v`)
+- Uses **16× oversampling** via `rx_clk_en`
+- FSM states:
+  - `IDLE`  – Waits for start bit (RX line goes low)
+  - `START` – Aligns sampling to data bit center
+  - `DATA`  – Samples each bit at mid-point (`sample_count == 8`)
+  - `STOP`  – Waits for stop bit and completes reception
+- Captures serial data into a shift register
+- Asserts `rx_ready` when a full byte is received
+- `rx_ready_clr` clears the ready flag after data is read
 
-### `uart_tb`
+---
 
-- Generates a 100 MHz clock (`10 ns` period).
-- Applies reset, then runs three tests in loopback:
-  - Sends `0x41`, `0x55`, and `0xAA`.
-  - Waits for `rx_ready`, prints received data, and clears `rx_ready` using `rx_ready_clr`.
-- Includes a timeout watchdog to avoid infinite simulation if something goes wrong. 
+### 🔹 UART Top Module (`uart_top.v`)
+- Integrates:
+  - Baud rate generator
+  - UART transmitter
+  - UART receiver
+- Implements **internal loopback**:
+  - TX output connected directly to RX input
+- Simplifies verification without external UART hardware
 
-## Simulation
+---
 
-1. Add all Verilog source files and `uart_tb.v` to your simulator project. 
-2. Set `uart_tb` as the top-level simulation module. 
-3. Run the simulation.  
-   You should see console messages similar to:
-   - `Test 1: Sending 0x41`
-   - `Received: 0x41 (Expected: 0x41)`
-   - `Test 2: Sending 0x55`
-   - `Received: 0x55 (Expected: 0x55)`
-   - `Test 3: Sending 0xAA`
-   - `Received: 0xAA (Expected: 0xAA)`
-   - `All tests complete!` 
+## 🧪 Simulation & Verification
+- **Testbench:** `uart_tb.v`
+- **Clock Frequency:** 100 MHz (10 ns period)
+- **Verification Method:** Directed TX–RX loopback testing
 
-If you see the `ERROR: Timeout!` message, it indicates that the receiver did not assert `rx_ready` in time, and you may need to check clock, baud rate, or connections.
+### ✔️ Test Cases Executed
+| Test | Transmitted Data | Received Data | Result |
+|----|------------------|---------------|--------|
+| 1  | `8'h41`          | `8'h41`       | PASS   |
+| 2  | `8'h55`          | `8'h55`       | PASS   |
+| 3  | `8'hAA`          | `8'hAA`       | PASS   |
 
-## Parameters and Configuration
+- Testbench waits for `rx_ready`
+- Clears ready flag using `rx_ready_clr`
+- Includes a **timeout watchdog** to detect deadlocks
 
-- System clock: 100 MHz (10 ns period).
-- Default baud rate (in `baud_rate_generator`): 115200 for faster simulation.  
-  For a different baud rate, adjust the `BAUD_RATE` parameter and rebuild the project. 
+---
 
-## Usage Notes
-
-- The design assumes an 8‑bit data word with no parity and one stop bit (8N1). 
-- For integration on hardware, connect `tx_line` and `rx_line` to appropriate FPGA pins and replace the internal loopback with external UART lines. 
-
-<img width="1000" height="269" alt="image" src="https://github.com/user-attachments/assets/2d3a11f3-bfc3-4424-ad18-08f8f1a49e77" />
+## 📁 RTL File Structure
