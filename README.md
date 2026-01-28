@@ -1,6 +1,6 @@
 # 📡 UART Controller – RTL Design (Verilog HDL)
 
-## 📌 Project Overview
+## 📌 Overview
 This repository contains a **fully functional UART (Universal Asynchronous Receiver Transmitter)** implemented in **Verilog HDL**. The design includes a **baud rate generator, UART transmitter, UART receiver, top-level integration, and a self-checking testbench**.
 
 The UART supports **8-bit asynchronous serial communication** using a standard frame format and is verified through **TX–RX loopback simulation**. The receiver uses **16× oversampling** to ensure accurate and reliable bit detection.
@@ -116,18 +116,9 @@ The UART design is composed of the following RTL blocks:
 
 ---
 
-## 🚀 Future Enhancements
-- Parity bit support  
-- Configurable data length and stop bits  
-- FIFO buffering for TX and RX  
-- Framing and parity error detection  
-- APB/AHB interface for register-based control  
-
----
-
 ## 👤 Author
 **Meiyarasan R**  
-ECE student
+ECE student,
 Interested in VLSI & Verification
 
 
