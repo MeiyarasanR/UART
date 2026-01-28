@@ -105,5 +105,32 @@ The UART design is composed of the following RTL blocks:
 - Includes a **timeout watchdog** to detect deadlocks
 
 ---
+---
 
-## 📁 RTL File Structure
+## 📘 Learning Outcomes
+- Strong understanding of **UART protocol**
+- FSM-based RTL design in Verilog HDL
+- Baud-rate timing and oversampling concepts
+- Serial-to-parallel and parallel-to-serial conversion
+- End-to-end **RTL simulation and verification**
+
+---
+
+## 🚀 Future Enhancements
+- Parity bit support  
+- Configurable data length and stop bits  
+- FIFO buffering for TX and RX  
+- Framing and parity error detection  
+- APB/AHB interface for register-based control  
+
+---
+
+## 👤 Author
+**Meiyarasan R**  
+ECE student
+Interested in VLSI & Verification
+
+
+---
+
+⭐ If you find this project useful, feel free to star the repository!
