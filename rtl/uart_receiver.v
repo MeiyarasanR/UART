@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // =============================================================================
-// UART RECEIVER MODULE (FIXED)
+// UART RECEIVER MODULE
 // Receives 8-bit data serially: START(0) + 8 DATA BITS + STOP(1)
 // Uses 16x oversampling for accurate bit detection
 // =============================================================================
@@ -105,3 +105,4 @@ module uart_receiver(
         end
     end
 endmodule
+
